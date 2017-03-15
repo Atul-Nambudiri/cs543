@@ -1,0 +1,5 @@
+function bmap= edgeOrientedFilters(im)
+im = im2double(
+[mag, theta] = orientedFilterMagnitude(im);
+
+bmap = nonmax(mag, theta);
