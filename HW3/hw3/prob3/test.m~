@@ -1,0 +1,15 @@
+load prob3.mat
+
+set = []
+    
+points1 = ones(8, 3);
+points2 = ones(8, 3);
+    
+for i = 1:8
+    pos1 = matches(set(i), 1);
+    pos2 = matches(set(i), 2);
+    points1(i, :) = vertcat(r1(pos1), c1(pos1), 1);
+    points2(i, :) = vertcat(r2(pos2), c2(pos2), 1);
+end
+
+plotmatches(im1,im2,[c1 r1]',[c2 r2]',matches')

@@ -127,26 +127,22 @@ X = solve([eqn1, eqn2, eqn3], [f; u; v]);
 
 u0 = double(X.u(2))
 v0 = double(X.v(1))
-f = double(X.f(1))
+f1 = double(X.f(1))
 
 %% Solve for R
 
-R = zeros(3);
+R = zeros(3, 3);
 
-for i = 1:3
-    syms x y z
-    eqn1 = f * x + u0 * z == vpsuv(1, i);
-    eqn2 = f * y + v0 * z == vpsuv(2, i);
-    eqn3 = z == 1;
-    
-    res = solve([eqn1, eqn2, eqn3], [x; y; z]);
-    R(:, i) = [res.x; res.y; res.z];
-end
+R(:, 1) = [(vpsuv(1, 3) - u0)/f1; (vpsuv(2, 3) - u0)/f1; 1];
+R(:, 2) = [(vpsuv(1, 1) - u0)/f1; (vpsuv(2, 1) - u0)/f1; 1];
+R(:, 3) = [(vpsuv(1, 2) - u0)/f1; (vpsuv(2, 2) - u0)/f1; 1];
 
 % Normalize the rotation matrix, accoriding to Piazza post #184
 R = normc(R);
 
-R(:, 3) = real(cross(R(:,1), R(:, 2)));
 R(:, 2) = real(cross(R(:,1), R(:, 3)));
+R(:, 3) = real(cross(R(:,1), R(:, 2)));
 
 R
+
+R * R'
