@@ -1,5 +1,3 @@
-function h = q3
-
 load prob3.mat r1 c1 r2 c2 matches
 
 im1 = imread('chapel00.png');
@@ -47,17 +45,17 @@ end
 [n, k] = size(matches);
 best_number_in_threshold = 0;
 best_dist = 0;
-threshold = .09;
+threshold = 1.1;
 best_F = zeros(1);
 
-best_inliers = []
-best_outliers = []
+best_inliers = [];
+best_outliers = [];
 
-for t = 1:1000
+for t = 1:2000
     set = randperm(n, 8);
     
-    inliers = []
-    outliers = []
+    inliers = [];
+    outliers = [];
     
     points1 = ones(8, 3);
     points2 = ones(8, 3);
@@ -86,29 +84,40 @@ for t = 1:1000
     S(3,3) = 0;
     F = U*S*V'; 
     
+    %Normalize this F for future calculations
+    norm_F = T2' * F * T1;
+    
     number_in_threshold = 0;
     dist_sum = 0;
     
     % Calculate I for each point, normalize it, and then check to see if 
     % its in the threshold
     for i = 1:n
-        u = c1(matches(i, 1));
-        v = r1(matches(i, 1));
-        I = F' * vertcat(u, v, 1);
+        u = c1_old(matches(i, 1));
+        v = r1_old(matches(i, 1));
+        I = norm_F' * vertcat(u, v, 1);
         distance = abs(I(1) * u + I(2) * v + I(3))/sqrt(I(1)*I(1) + I(2)*I(2));
         
-        if distance < threshold
+        u2 = c2_old(matches(i, 2));
+        v2 = r2_old(matches(i, 2));
+        I2 = norm_F * vertcat(u2, v2, 1);
+        distance2 = abs(I2(1) * u2 + I2(2) * v2 + I2(3))/sqrt(I2(1)*I2(1) + I2(2)*I2(2));
+        
+        if distance < threshold && distance2 < threshold
             number_in_threshold = number_in_threshold + 1;
             dist_sum = dist_sum + distance;
-            i
+            inliers = [inliers; i];
+        else
+            outliers = [outliers; i];
         end
     end
-    if number_in_threshold >= best_number_in_threshold && dist_sum > best_dist
+    if number_in_threshold >= best_number_in_threshold
         best_F = F;
         best_number_in_threshold = number_in_threshold;
         best_dist = dist_sum;
+        best_inliers = inliers;
+        best_outliers = outliers;
     end
-    number_in_threshold
 end
 
 % Unnormalize F
@@ -118,38 +127,36 @@ inliers1 = [];
 inliers1_lines = [];
 inliers2 = [];
 inliers2_lines = [];
-outliers = [];
+outliers1 = [];
 
-% Calculate I for each point and then check to see if 
-% its in the threshold
-for i = 1:n
-    u = c1_old(matches(i, 1));
-    v = r1_old(matches(i, 1));
+% Calculate I for each inlier
+for i = 1:length(best_inliers)
+    u = c1_old(matches(best_inliers(i), 1));
+    v = r1_old(matches(best_inliers(i), 1));
     I = F' * vertcat(u, v, 1);
     
-    distance = abs(I(1) * u + I(2) * v + I(3))/sqrt(I(1)*I(1) + I(2)*I(2));
-    
-    u2 = c2_old(matches(i, 2));
-    v2 = r2_old(matches( i, 2));
+    u2 = c2_old(matches(best_inliers(i), 2));
+    v2 = r2_old(matches(best_inliers(i), 2));
     I2 = F * vertcat(u2, v2, 1);
-%     distance2 = abs(I2(1) * u2 + I2(2) * v2 + I2(3))/sqrt(I2(1) ^ 2 + I2(2) ^ 2);
 
-    if distance < 2
-        % Create the line with the original coordinates, and the normalized
-        % version of F
-        inliers1 = [inliers1; horzcat(u, v)];
-        inliers2 = [inliers2; horzcat(u2, v2)];
-        inliers1_lines = [inliers1_lines; I'];
-        inliers2_lines = [inliers2_lines; I2'];
-    else
-        outliers = [outliers; horzcat(u, v)];
-    end
+    inliers1 = [inliers1; horzcat(u, v)];
+    inliers2 = [inliers2; horzcat(u2, v2)];
+    inliers1_lines = [inliers1_lines; I'];
+    inliers2_lines = [inliers2_lines; I2'];
+end
+
+% Calculate I for each inlier
+for i = 1:length(best_outliers)
+    u = c1_old(matches(best_outliers(i), 1));
+    v = r1_old(matches(best_outliers(i), 1));
+    
+    outliers1 = [outliers1; horzcat(u, v)];
 end
 
 size(inliers1_lines)
 
 imagesc(im1) ; colormap gray ; hold on ; axis image ; axis off ;
-plot(outliers(:, 1), outliers(:, 2), 'g.');
+plot(outliers1(:, 1), outliers1(:, 2), 'g.');
 figure();
 
 [len, x] = size(inliers1);
@@ -164,7 +171,7 @@ for i = 1:length(set)
     [len, width] = size(im1);
     plot(inliers1(set(i), 1), inliers1(set(i), 2), 'r+');
     line = inliers1_lines(set(i), :);
-    plot([1 width], [max((-line(3)-line(1)*1)/line(2)) min(len, (-line(3)-line(1)*width)/line(2))]);
+    plot([1 width], [max((-line(3)-line(1)*1)/line(2)) min(len, (-line(3)-line(1)*width)/line(2))], 'g');
 end
 
 subplot(122);
@@ -173,7 +180,7 @@ for v = 1:length(set)
     [len, width] = size(im2);
     plot(inliers2(set(v), 1), inliers2(set(v), 2), 'r+');
     line = inliers2_lines(set(v), :);
-    plot([1 width], [max(0, (-line(3)-line(1)*1)/line(2)) min(len, (-line(3)-line(1)*width)/line(2))]);
+    plot([1 width], [max(0, (-line(3)-line(1)*1)/line(2)) min(len, (-line(3)-line(1)*width)/line(2))], 'g');
 end
 hold off;
 
