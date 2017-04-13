@@ -158,3 +158,58 @@ cIndMap = uint16(cIndMap);
 % 
 time = toc;
 
+for q = 1:3
+    % Post Processing
+    for t = 1:length(cluster_centers)
+        res = bwconncomp(cIndMap == t);
+        if res.NumObjects > 1
+            m = regionprops(res,'Centroid');
+            for i = 1:res.NumObjects
+                pixels = res.PixelIdxList(i);
+                pixels = pixels{1};
+                [min1, clusters] = min(pdist2(m(i).Centroid, cluster_centers(:, 1:2)));
+                cIndMap(pixels) = clusters;
+            end
+        end
+    end
+    for t = 1:length(cluster_centers)
+        [r, c] = find(cIndMap == t);
+        r_sum = 0;
+        g_sum = 0;
+        b_sum = 0;
+        x_sum = 0;
+        y_sum = 0;
+        for p = 1:length(r)
+            r_sum = r_sum + img(r(p),c(p),1);
+            g_sum = g_sum + img(r(p),c(p),2);
+            b_sum = b_sum + img(r(p),c(p),3);
+            x_sum = x_sum + r(p);
+            y_sum = y_sum + c(p);
+        end
+        if length(r) ~= 0
+            new_cluster_center = [double(x_sum)/double(length(r)), double(y_sum)/double(length(r)), double(r_sum)/double(length(r)), double(g_sum)/double(length(r)), double(b_sum)/double(length(r))];
+        else
+            new_cluster_center = cluster_centers(t, :);
+        end
+        cluster_centers(t, :) = new_cluster_center;
+    end
+end
+
+
+for t = 1:length(cluster_centers)
+    res = bwconncomp(cIndMap == t);
+    if res.NumObjects > 1
+        m = regionprops(res,'Centroid');
+        numPixels = cellfun(@numel,res.PixelIdxList);
+        [biggest,idx] = max(numPixels);
+        for i = 1:res.NumObjects
+            if i ~= idx(1)
+                pixels = res.PixelIdxList(i);
+                pixels = pixels{1};
+                [min1, clusters] = min(pdist2(m(i).Centroid, cluster_centers(:, 1:2)));
+                cIndMap(pixels) = clusters;
+            end
+        end
+    end
+end
+

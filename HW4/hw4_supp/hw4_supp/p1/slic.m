@@ -1,7 +1,4 @@
-% function [cIndMap, time, imgVis] = slic(img, K, compactness)
-img = imread('BSR/BSDS500/data/images/test/10081.jpg');
-K = 25;
-compactness = 25;
+function [cIndMap, time, imgVis] = slic(img, K, compactness)
 %% Implementation of Simple Linear Iterative Clustering (SLIC)
 %
 % Input:
@@ -16,6 +13,9 @@ compactness = 25;
 tic;
 % Put your SLIC implementation here
 
+img = im2double(img);
+img = rgb2lab(img);
+
 gray = rgb2gray(img);
 [grad, dir] = imgradient(gray);
 
@@ -25,15 +25,12 @@ distance = double(zeros(x_size, y_size));
 distance(:, :) = double(realmax);
 S = uint16(sqrt((x_size * y_size)/K));
 
-time1 = toc
-
 cluster_centers = [];
 
-count = 1
+error_map = double(zeros(x_size, y_size));
 
 for i = S/2:S:x_size
     for j = S/2:S:y_size
-        count = count + 1;
         %Move cluster to min gradient position in 3x3 around the cluster center
         lowX = max([1, i - 1]);
         lowY = max([1, j - 1]);
@@ -48,13 +45,12 @@ for i = S/2:S:x_size
     end
 end
 
-time2 = toc
-
 error = 100000000;
 [u, v] = meshgrid(1:x_size, 1:y_size);
 u = u.';
 v = v.';
-while(error > 1)
+count = 0;
+while(error > .1)
     for t = 1:length(cluster_centers)
         lowX = max([1, cluster_centers(t, 1) - S]);
         lowY = max([1, cluster_centers(t, 2) - S]);
@@ -83,15 +79,15 @@ while(error > 1)
     error = 0;
     for t = 1:length(cluster_centers)
         [r, c] = find(cIndMap == t);
-        r_sum = 0;
-        g_sum = 0;
-        b_sum = 0;
-        x_sum = 0;
-        y_sum = 0;
+        r_sum = 0.0;
+        g_sum = 0.0;
+        b_sum = 0.0;
+        x_sum = 0.0;
+        y_sum = 0.0;
         for p = 1:length(r)
-            r_sum = r_sum + img(r(p),c(p),1);
-            g_sum = g_sum + img(r(p),c(p),2);
-            b_sum = b_sum + img(r(p),c(p),3);
+            r_sum = r_sum + double(img(r(p),c(p),1));
+            g_sum = g_sum + double(img(r(p),c(p),2));
+            b_sum = b_sum + double(img(r(p),c(p),3));
             x_sum = x_sum + r(p);
             y_sum = y_sum + c(p);
         end
@@ -105,68 +101,60 @@ while(error > 1)
         error = error + sum(diff);
         cluster_centers(t, :) = new_cluster_center;
     end
+    if count == 1
+        figure(1);
+        imagesc(distance);
+        colormap jet
+    end
+    count = count + 1;
     error = sqrt(error);
 end
 
-time3 = toc
+figure(2);
+imagesc(distance);
+colormap jet
 
-unique(cIndMap)
 
-% for q = 1:3
-%     % Post Processing
-%     for t = 1:length(cluster_centers)
-%         res = bwconncomp(cIndMap == t);
-%         if res.NumObjects > 1
-%             m = regionprops(res,'Centroid');
-%             for i = 1:res.NumObjects
-%                 pixels = res.PixelIdxList(i);
-%                 pixels = pixels{1};
-%                 [min1, clusters] = min(pdist2(m(i).Centroid, cluster_centers(:, 1:2)));
-%                 cIndMap(pixels) = clusters;
-%             end
-%         end
-%     end
-%     for t = 1:length(cluster_centers)
-%         [r, c] = find(cIndMap == t);
-%         r_sum = 0;
-%         g_sum = 0;
-%         b_sum = 0;
-%         x_sum = 0;
-%         y_sum = 0;
-%         for p = 1:length(r)
-%             r_sum = r_sum + img(r(p),c(p),1);
-%             g_sum = g_sum + img(r(p),c(p),2);
-%             b_sum = b_sum + img(r(p),c(p),3);
-%             x_sum = x_sum + r(p);
-%             y_sum = y_sum + c(p);
-%         end
-%         if length(r) ~= 0
-%             new_cluster_center = [double(x_sum)/double(length(r)), double(y_sum)/double(length(r)), double(r_sum)/double(length(r)), double(g_sum)/double(length(r)), double(b_sum)/double(length(r))];
-%         else
-%             new_cluster_center = cluster_centers(t, :);
-%         end
-%         cluster_centers(t, :) = new_cluster_center;
-%     end
-% end
-% 
-% unique(cIndMap)
+% Post Processing
+for t = 1:length(cluster_centers)
+    res = bwconncomp(cIndMap == t);
+    if res.NumObjects > 1
+        m = regionprops(res,'Centroid');
+        numPixels = cellfun(@numel,res.PixelIdxList);
+        [biggest,idx] = max(numPixels);
+        for i = 1:res.NumObjects
+            if i ~= idx(1)
+                pixels = res.PixelIdxList(i);
+                pixels = pixels{1};
+                for v = 1:length(pixels)
+                    [x, y] = ind2sub(size(cIndMap), pixels(v));
+                    if x ~= 1
+                        cIndMap(x, y) = cIndMap(x - 1, y);
+                    else
+                        cIndMap(x, y) = cIndMap(x + 1, y);
+                    end
+                end
+            end
+        end
+    end
+end
 
-time4 = toc
-
-time5 = toc
+img = lab2rgb(img);
 
 for t = 1:length(cluster_centers)
     res = bwperim(cIndMap == t);
     [r, c] = find(res);
     for p = 1:length(r)
-        img(r(p), c(p), 1) = 255;
-        img(r(p), c(p), 2) = 255;
-        img(r(p), c(p), 3) = 255;
+        img(r(p), c(p), 1) = 0;
+        img(r(p), c(p), 2) = 0;
+        img(r(p), c(p), 3) = 0;
     end
 end
 imgVis = img;
-imshow(img);
 cIndMap = uint16(cIndMap);
-% 
+figure(3);
+imshow(imgVis);
+
+%
 time = toc;
 
