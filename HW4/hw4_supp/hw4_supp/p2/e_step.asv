@@ -1,0 +1,17 @@
+function alphas = e_step(x, sigma, mu_s, beta)
+
+[images, annotators] = size(x);
+alphas = zeros(images, annotators, 2);
+
+for i = 1:images
+    for j = 1:annotators
+        z_0 = (1 - beta)/10;
+        z_1 = beta/(sqrt(2 * pi));
+        z_1
+        z_1 * x(i, j) - mu_s(i)
+        z_1 = z_1 * exp(-((x(i, j) - mu_s(i))^2)/(2 * sigma^2));
+        alphas(i, j, 1) = z_0/(z_0 + z_1);
+        alphas(i, j, 2) = z_1/(z_0 + z_1);
+    end
+end
+
