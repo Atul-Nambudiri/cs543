@@ -1,0 +1,6 @@
+load('annotation_data.mat');
+
+sigma_initial = 0.5;
+m_s = zer
+x = zeros(150, 25);
+

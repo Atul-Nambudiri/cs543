@@ -10,3 +10,4 @@ segments = slic(img, n_segments=25, compactness=25)
 plt.imshow(segments)
 
 plt.show()
+za

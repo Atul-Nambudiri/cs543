@@ -13,8 +13,9 @@ for i = 1:images
     for j = 1:annotators
         x_alpha_sum = x_alpha_sum + x(i, j) * alphas(i, j, 2);
     end
-    mu_s(i) = x_alpha_sum/sum(alphas(1, :, 2));
+    mu_s(i) = x_alpha_sum/sum(alphas(i, :, 2));
 end
+
 
 %Sigma
 for i = 1:images
@@ -29,20 +30,19 @@ sigma = sigma_sum/sum(sum(alphas(:, :, 2)));
 sigma = sqrt(sigma);
 
 %beta
-beta = sum(sum(alphas(i, j, 2)))/sum(sum(sum(alphas)));
+beta = sum(sum(alphas(:, :, 2)))/sum(sum(sum(alphas)));
 
 %m
 for j = 1:annotators
-    top_sum_0 = 0;
-    top_sum_1 = 0;
+    m_0 = 0;
+    m_1 = 0;
+    
     for i = 1:images
         if x(i, j) ~= 0  % Only follow this process is the image has been reviewd by this annotator
-            top_sum_0 = top_sum_0 + alphas(i, j, 1) * (1 - beta);
-            top_sum_1 = top_sum_1 + alphas(i, j, 2) * (beta);
+            m_0 = m_0 + alphas(i, j, 1);
+            m_1 = m_1 + alphas(i, j, 2);
         end
     end
-    m_0 = top_sum_0/(top_sum_0 + top_sum_1);
-    m_1 = top_sum_1/(top_sum_0 + top_sum_1);
     
     if m_0 > m_1
         m_s(j) = 1;
