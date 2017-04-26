@@ -1,3 +1,5 @@
+function accuracies = eigenfaces(d, subsets_to_train)
+
 [im, person, number, subset] = readFaceImages('faces');
 
 X = [];
@@ -11,11 +13,13 @@ for i=1:length(subset)
     im{i} = (im{i} - im_mean)/im_std;
     im_means(i) = im_mean;
     im_stds(i) = im_std;
-    if subset(i) == 1
+    if any(subsets_to_train == subset(i)) 
         im2 = reshape(im{i}, [2500 1]);
         X = horzcat(X, im2);
     end
 end
+
+[t, samples] = size(X);
 
 mu = mean(X, 2);
 X = bsxfun(@minus, X, mu);
@@ -24,10 +28,8 @@ X = bsxfun(@minus, X, mu);
 
 V = X*U;
 
-d = 9;
-
-for i = 1:d
-    figure(1);
+for i = 1:9
+    fig = figure('visible','off');
     subplot(3,3,i)
     t = V(:,i);
     t = reshape(t, [50 50]);
@@ -35,15 +37,17 @@ for i = 1:d
     axis image;
     axis off;
     colormap gray;
+    
+    saveas(fig, strcat('output/eigenfaces_best_', strcat(int2str(d), strcat('_', mat2str(subsets_to_train)))));
 end
 
-projections = zeros(70, d);
-subset_person_num = zeros(70, 1);
+projections = zeros(samples, d);
+subset_person_num = zeros(samples, 1);
 V_sub = V(:, 1:d);
 
 image_num = 1;
 for i=1:length(subset)
-    if subset(i) == 1
+    if any(subsets_to_train == subset(i))
         x_pca = V_sub' * reshape(im{i}, [2500 1]);
         projections(image_num, :) = x_pca;
         subset_person_num(image_num) = person(i);
@@ -70,12 +74,47 @@ accuracies(5) = accuracies(5)/(190);
 image_locations = [6, 11, 25, 33, 49];
 
 for i = 1:5
-%     figure(2);
+    fig = figure('visible','off');
     image_index = image_locations(i);
     original = im{image_index};
     original = original * im_stds(image_index) + im_means(image_index); 
     
-    im2 = reshape(im{i}, [2500 1]);
+    im2 = reshape(im{image_index}, [2500 1]);
+    x_pca = V_sub' * im2;
+    
+    reconstructed_image = mu;
+    for j = 1:d
+        reconstructed_image = reconstructed_image + V_sub(:, j) * x_pca(j);
+    end
+    
+    reconstructed = reshape(reconstructed_image, [50 50]);
+    reconstructed = reconstructed * im_stds(image_index) + im_means(image_index);
+    
+    
+    subplot(2,5,i);
+    imagesc(original);
+    axis image;
+    axis off;
+    colormap gray;
+    
+    subplot(2,5,5 + i);
+    imagesc(reconstructed);
+    axis image;
+    axis off;
+    colormap gray;
+    
+    saveas(fig, strcat('output/eigenfaces_person1_', strcat(int2str(d), strcat('_', mat2str(subsets_to_train)))));
+end
+
+image_locations = [6, 82, 157, 235, 308];
+
+for i = 1:5
+    fig = figure('visible','off');
+    image_index = image_locations(i);
+    original = im{image_index};
+    original = original * im_stds(image_index) + im_means(image_index); 
+    
+    im2 = reshape(im{image_index}, [2500 1]);
     x_pca = V_sub' * im2;
     
     
@@ -85,6 +124,8 @@ for i = 1:5
     end
     
     reconstructed = reshape(reconstructed_image, [50 50]);
+    reconstructed = reconstructed * im_stds(image_index) + im_means(image_index);
+    
     
     subplot(2,5,i);
     imagesc(original);
@@ -93,8 +134,11 @@ for i = 1:5
     colormap gray;
     
     subplot(2,5,5 + i);
-    imagesc(original);
+    imagesc(reconstructed);
     axis image;
     axis off;
     colormap gray;
+    
+    saveas(fig, strcat('output/eigenfaces_different_', strcat(int2str(d), strcat('_', mat2str(subsets_to_train)))));
 end
+
