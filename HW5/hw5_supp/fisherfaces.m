@@ -1,21 +1,20 @@
-function accuracies = fisherfaces(c, subsets_to_train)
+% function accuracies = fisherfaces(c, subsets_to_train)
 
+c = 10;
+subsets_to_train = [1];
 [im, person, number, subset] = readFaceImages('faces');
 
 X = [];
-
-im_means = zeros(length(subset));
-im_stds = zeros(length(subset));
+X_orig = [];
 
 for i=1:length(subset)
     im_mean = mean2(im{i});
     im_std = std2(im{i});
     im{i} = (im{i} - im_mean)/im_std;
-    im_means(i) = im_mean;
-    im_stds(i) = im_std;
     if any(subsets_to_train == subset(i)) 
         im2 = reshape(im{i}, [2500 1]);
         X = horzcat(X, im2);
+        X_orig = horzcat(X_orig, im2);
     end
 end
 
@@ -30,142 +29,90 @@ V = X*U;
 
 d = samples - c;
 
-projections = zeros(samples, d);
-V_sub = V(:, 1:d);
+W_pca = V(:, 1:d);
+pca_projections = zeros(d, samples);
 
-means = zeros(2500, 10);
-Si = zeros(10);
-Sw = 0;
-Sb = 0;
-
-for i=1:length(person)
-    if any(subsets_to_train == subset(i))
-        index = person(i);
-        means(:, index) = means(:, index) + reshape(im{index}, [2500 1]);
-    end
+for i = 1:samples
+    temp = W_pca' * X_orig(:, i);
+    pca_projections(:, i) = temp;
 end
 
-number_per_class = 26;
+projected_mean = mean(pca_projections, 2);
 
-if length(subsets_to_train) == 1
-    number_per_class = 7;
-end
-
-means = means/number_per_class;
+means = zeros(d, 10);
+number_per_class = zeros(10, 1);
+Si = zeros(d, d, 10);
+Sw = zeros(d, d);
+Sb = zeros(d, d);
 
 for i=1:length(subset)
     if any(subsets_to_train == subset(i))
         index = person(i);
-        res = reshape(im{i}, [2500 1]) - means(:, index);
-        res = res*res';
-        Si(index) = res;
+        x_pca = W_pca' * reshape(im{i}, [2500 1]);
+        means(:, index) = means(:, index) + x_pca;
+        number_per_class(index) = number_per_class(index) + 1;
     end
 end
 
-Sw = sum(Si);
 
 for i=1:10
-    Sb = Sb + number_per_class * ((means(i) - mu) * (means(i) -mu)');
+    means(:, i) = means(:, i)/number_per_class(i);
 end
-    
-    
 
+for i=1:length(subset)
+    if any(subsets_to_train == subset(i))
+        index = person(i);
+        x_pca = W_pca' * reshape(im{i}, [2500 1]);
+        res = x_pca - means(:, index);
+        res1 = res*res';
+        Si(:, :, index) = res1;
+    end
+end
+
+for i=1:10
+    temp = means(:, i) - projected_mean;
+    Sb = Sb + number_per_class(i) * (temp * temp');
+    Sw = Sw + Si(:, :, i);
+end
+
+[V, D] = eig(Sb, Sw);
+[D, sorted] = sort(diag(D), 'descend');
+V = V(:, sorted);
+W_fld = V(:, 1:c-1);
+
+W_opt = W_pca * W_fld;
 
 subset_person_num = zeros(samples, 1);
 image_num = 1;
+projections = zeros(samples, c-1);
+
 for i=1:length(subset)
     if any(subsets_to_train == subset(i))
-        
-        x_pca = V_sub' * reshape(im{i}, [2500 1]);
-        projections(image_num, :) = x_pca;
+        x_opt = W_opt' * reshape(im{i}, [2500 1]);
+        projections(image_num, :) = x_opt;
         subset_person_num(image_num) = person(i);
         image_num = image_num + 1;
     end
 end
 
 accuracies = zeros(1, 5);
+predictions = zeros(1, 640)
 for i=1:length(subset)
-    im2 = reshape(im{i}, [2500 1]);
-    x_pca = V_sub' * im2;
-    idx = knnsearch(projections,x_pca');
+    x_opt = W_opt' * reshape(im{i}, [2500 1]);
+    idx = knnsearch(projections,x_opt');
+    predictions(i) = subset_person_num(idx);
     if subset_person_num(idx) == person(i)
         accuracies(subset(i)) = accuracies(subset(i)) + 1;
+    else
+        t = person(i)
+        u = subset_person_num(idx)
     end
 end
+
+confusionmat(person, predictions)
 
 accuracies(1) = accuracies(1)/(70);
 accuracies(2) = accuracies(2)/(120);
 accuracies(3) = accuracies(3)/(120);
 accuracies(4) = accuracies(4)/(140);
 accuracies(5) = accuracies(5)/(190);
-
-image_locations = [6, 11, 25, 33, 49];
-
-for i = 1:5
-    fig = figure('visible','off');
-    image_index = image_locations(i);
-    original = im{image_index};
-    original = original * im_stds(image_index) + im_means(image_index); 
-    
-    im2 = reshape(im{image_index}, [2500 1]);
-    x_pca = V_sub' * im2;
-    
-    reconstructed_image = mu;
-    for j = 1:d
-        reconstructed_image = reconstructed_image + V_sub(:, j) * x_pca(j);
-    end
-    
-    reconstructed = reshape(reconstructed_image, [50 50]);
-    reconstructed = reconstructed * im_stds(image_index) + im_means(image_index);
-    
-    
-    subplot(2,5,i);
-    imagesc(original);
-    axis image;
-    axis off;
-    colormap gray;
-    
-    subplot(2,5,5 + i);
-    imagesc(reconstructed);
-    axis image;
-    axis off;
-    colormap gray;
-    
-    saveas(fig, strcat('output/fisherfaces_person1_', strcat(int2str(d), strcat('_', mat2str(subsets_to_train)))));
-end
-
-image_locations = [6, 82, 157, 235, 308];
-
-for i = 1:5
-    fig = figure('visible','off');
-    image_index = image_locations(i);
-    original = im{image_index};
-    original = original * im_stds(image_index) + im_means(image_index); 
-    
-    im2 = reshape(im{image_index}, [2500 1]);
-    x_pca = V_sub' * im2;
-    
-    
-    reconstructed_image = mu;
-    for j = 1:d
-        reconstructed_image = reconstructed_image + V_sub(:, j) * x_pca(j);
-    end
-    
-    reconstructed = reshape(reconstructed_image, [50 50]);
-    reconstructed = reconstructed * im_stds(image_index) + im_means(image_index);
-    
-    
-    subplot(2,5,i);
-    imagesc(original);
-    axis image;
-    axis off;
-    colormap gray;
-    
-    subplot(2,5,5 + i);
-    imagesc(reconstructed);
-    axis image;
-    axis off;
-    colormap gray;
-    
-    saveas(fig, strcat('output/fisherfaces_different_', strcat(int2str(d), strcat('_', mat2str(subsets_to_train)))));
-end

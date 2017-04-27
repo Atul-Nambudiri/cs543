@@ -1,4 +1,7 @@
-function accuracies = eigenfaces(d, subsets_to_train)
+% function accuracies = eigenfaces(d, subsets_to_train)
+
+d = 9;
+subsets_to_train = ones(1);
 
 [im, person, number, subset] = readFaceImages('faces');
 
@@ -28,8 +31,8 @@ X = bsxfun(@minus, X, mu);
 
 V = X*U;
 
+fig = figure('visible','off');
 for i = 1:9
-    fig = figure('visible','off');
     subplot(3,3,i)
     t = V(:,i);
     t = reshape(t, [50 50]);
@@ -37,9 +40,9 @@ for i = 1:9
     axis image;
     axis off;
     colormap gray;
-    
-    saveas(fig, strcat('output/eigenfaces_best_', strcat(int2str(d), strcat('_', mat2str(subsets_to_train)))));
 end
+saveas(fig, strcat('output/eigenfaces_best_', strcat(int2str(d), strcat('_', strcat(mat2str(subsets_to_train), '.png')))));
+
 
 projections = zeros(samples, d);
 subset_person_num = zeros(samples, 1);
@@ -56,14 +59,18 @@ for i=1:length(subset)
 end
 
 accuracies = zeros(1, 5);
+predictions = zeros(1, 640);
 for i=1:length(subset)
     im2 = reshape(im{i}, [2500 1]);
     x_pca = V_sub' * im2;
     idx = knnsearch(projections,x_pca');
+    predictions(i) = subset_person_num(idx);
     if subset_person_num(idx) == person(i)
         accuracies(subset(i)) = accuracies(subset(i)) + 1;
     end
 end
+
+confusionmat(person, predictions)
 
 accuracies(1) = accuracies(1)/(70);
 accuracies(2) = accuracies(2)/(120);
@@ -73,8 +80,8 @@ accuracies(5) = accuracies(5)/(190);
 
 image_locations = [6, 11, 25, 33, 49];
 
+fig = figure('visible','off');
 for i = 1:5
-    fig = figure('visible','off');
     image_index = image_locations(i);
     original = im{image_index};
     original = original * im_stds(image_index) + im_means(image_index); 
@@ -102,14 +109,13 @@ for i = 1:5
     axis image;
     axis off;
     colormap gray;
-    
-    saveas(fig, strcat('output/eigenfaces_person1_', strcat(int2str(d), strcat('_', mat2str(subsets_to_train)))));
 end
+saveas(fig, strcat('output/eigenfaces_person1_', strcat(int2str(d), strcat('_', strcat(mat2str(subsets_to_train), '.png')))));
 
 image_locations = [6, 82, 157, 235, 308];
 
+fig = figure('visible','off');
 for i = 1:5
-    fig = figure('visible','off');
     image_index = image_locations(i);
     original = im{image_index};
     original = original * im_stds(image_index) + im_means(image_index); 
@@ -138,7 +144,7 @@ for i = 1:5
     axis image;
     axis off;
     colormap gray;
-    
-    saveas(fig, strcat('output/eigenfaces_different_', strcat(int2str(d), strcat('_', mat2str(subsets_to_train)))));
 end
+
+saveas(fig, strcat('output/eigenfaces_different_', strcat(int2str(d), strcat('_', strcat(mat2str(subsets_to_train), '.png')))));
 
