@@ -1,13 +1,14 @@
-% function accuracies = fisherfaces(c, subsets_to_train)
+function errors = fisherfaces(c, subsets_to_train)
 
-c = 10;
-subsets_to_train = [1];
+% c = 10;
+% subsets_to_train = [1];
 [im, person, number, subset] = readFaceImages('faces');
 
 X = [];
 X_orig = [];
 
 for i=1:length(subset)
+    im{i} = im2double(im{i});
     im_mean = mean2(im{i});
     im_std = std2(im{i});
     im{i} = (im{i} - im_mean)/im_std;
@@ -23,9 +24,15 @@ end
 mu = mean(X, 2);
 X = bsxfun(@minus, X, mu);
 
-[U,S,Vt] = svd(X' * X);
+[V, D] = eig(X' * X);
+[D, sorted] = sort(diag(D), 'descend');
+V = V(:, sorted);
 
-V = X*U;
+V = X*V;
+
+% for i = 1:samples
+%     V(:,i) = V(:,i)/norm(V(:,i));
+% end
 
 d = samples - c;
 
@@ -65,7 +72,7 @@ for i=1:length(subset)
         x_pca = W_pca' * reshape(im{i}, [2500 1]);
         res = x_pca - means(:, index);
         res1 = res*res';
-        Si(:, :, index) = res1;
+        Si(:, :, index) = Si(:, :, index) + res1;
     end
 end
 
@@ -77,10 +84,15 @@ end
 
 [V, D] = eig(Sb, Sw);
 [D, sorted] = sort(diag(D), 'descend');
-V = V(:, sorted);
-W_fld = V(:, 1:c-1);
+W_fld = V(:, sorted);
 
 W_opt = W_pca * W_fld;
+
+for i = 1:samples-c
+    W_opt(:,i) = W_opt(:,i)/norm(W_opt(:,i));
+end
+
+W_opt = W_opt(:, 1:c-1);
 
 subset_person_num = zeros(samples, 1);
 image_num = 1;
@@ -96,23 +108,25 @@ for i=1:length(subset)
 end
 
 accuracies = zeros(1, 5);
-predictions = zeros(1, 640)
+predictions = zeros(1, 640);
 for i=1:length(subset)
     x_opt = W_opt' * reshape(im{i}, [2500 1]);
     idx = knnsearch(projections,x_opt');
-    predictions(i) = subset_person_num(idx);
+    predictions(i) = subset_person_num(idx(1));
     if subset_person_num(idx) == person(i)
         accuracies(subset(i)) = accuracies(subset(i)) + 1;
     else
-        t = person(i)
-        u = subset_person_num(idx)
+        t = person(i);
+        u = subset_person_num(idx);
     end
 end
 
-confusionmat(person, predictions)
+confusionmat(person, predictions);
 
 accuracies(1) = accuracies(1)/(70);
 accuracies(2) = accuracies(2)/(120);
 accuracies(3) = accuracies(3)/(120);
 accuracies(4) = accuracies(4)/(140);
 accuracies(5) = accuracies(5)/(190);
+
+errors = 1 - accuracies;

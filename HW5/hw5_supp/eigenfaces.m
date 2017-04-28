@@ -1,7 +1,7 @@
-% function accuracies = eigenfaces(d, subsets_to_train)
+function errors = eigenfaces(d, subsets_to_train)
 
-d = 9;
-subsets_to_train = ones(1);
+% d = 9;
+% subsets_to_train = ones(1);
 
 [im, person, number, subset] = readFaceImages('faces');
 
@@ -11,6 +11,7 @@ im_means = zeros(length(subset));
 im_stds = zeros(length(subset));
 
 for i=1:length(subset)
+    im{i} = im2double(im{i});
     im_mean = mean2(im{i});
     im_std = std2(im{i});
     im{i} = (im{i} - im_mean)/im_std;
@@ -27,9 +28,15 @@ end
 mu = mean(X, 2);
 X = bsxfun(@minus, X, mu);
 
-[U,S,Vt] = svd(X' * X);
+[V, D] = eig(X' * X);
+[D, sorted] = sort(diag(D), 'descend');
+V = V(:, sorted);
 
-V = X*U;
+V = X*V;
+
+for i = 1:size(V,2)
+    V(:,i) = V(:,i)/norm(V(:,i));
+end
 
 fig = figure('visible','off');
 for i = 1:9
@@ -70,13 +77,15 @@ for i=1:length(subset)
     end
 end
 
-confusionmat(person, predictions)
+% confusionmat(person, predictions)
 
 accuracies(1) = accuracies(1)/(70);
 accuracies(2) = accuracies(2)/(120);
 accuracies(3) = accuracies(3)/(120);
 accuracies(4) = accuracies(4)/(140);
 accuracies(5) = accuracies(5)/(190);
+
+errors = 1 - accuracies;
 
 image_locations = [6, 11, 25, 33, 49];
 
