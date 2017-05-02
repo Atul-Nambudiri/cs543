@@ -142,6 +142,15 @@ end
 % Unnormalize H
 H = inv(T2) * best_H * T1;
 
+[x, y] = size(left);
+
+left_21 = zeros(2, 2)
+
+for i = 1:x
+    for j = 1:y
+        t = H *
+        left_21(i, j) = 
+
 %Get a tranformation and apply it to the left image
 tform = projective2d(H);
 left_2 = imwarp(double(left), tform);
