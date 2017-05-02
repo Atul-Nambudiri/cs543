@@ -142,10 +142,12 @@ end
 % Unnormalize H
 H = inv(T2) * best_H * T1;
 
-%Get a tranformation and apply it to the left image
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Get a tranformation and apply it to the left image - This part does not work
 % tform = projective2d(H);
-% left_2 = imwarp(double(left), tform);
+% new_im = imwarp(double(left), tform);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Display the best matching points
 % pos1 = matches(best_set, 1);
 % pos2 = matches(best_set, 2);
@@ -162,40 +164,44 @@ H = inv(T2) * best_H * T1;
 % imagesc(right) ; colormap gray ; hold on ; axis image ; axis off ;
 % plot(u2,v2,'r.','MarkerSize',20);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Manually project the left image
-[x, y] = size(right);
+% [x, y] = size(right);
+% 
+% min_x = 0;
+% max_x = 0;
+% min_y = 0;
+% max_y = 0;
+% 
+% for i = 1:x
+%     for j = 1:y
+%         new = H * vertcat(i, j, 1);
+%         new(1) = new(1)/new(3);
+%         new(2) = new(2)/new(3);
+%         min_x = min(min_x, ceil(new(1)));
+%         max_x = max(max_x, ceil(new(1)));
+%         min_y = min(min_y, ceil(new(2)));
+%         max_y = max(max_y, ceil(new(2)));
+%     end
+% end
+% 
+% new_im = zeros(max_x - min_x, max_y - min_y);
+% for i = 1:x
+%     for j = 1:y
+%         new = H * vertcat(i, j, 1);
+%         new(1) = ceil(new(1)/new(3));
+%         new(2) = ceil(new(2)/new(3));
+%         new_x = new(1) - min_x + 1;
+%         new_y = new(2) - min_y + 1;
+%         new_im(new_x, new_y) = left(i, j); 
+%     end
+% end
 
-min_x = 0;
-max_x = 0;
-min_y = 0;
-max_y = 0;
 
-for i = 1:x
-    for j = 1:y
-        new = H * vertcat(i, j, 1);
-        new(1) = new(1)/new(3);
-        new(2) = new(2)/new(3);
-        min_x = min(min_x, ceil(new(1)));
-        max_x = max(max_x, ceil(new(1)));
-        min_y = min(min_y, ceil(new(2)));
-        max_y = max(max_y, ceil(new(2)));
-    end
-end
-
-new_im = zeros(max_x - min_x, max_y - min_y);
-for i = 1:x
-    for j = 1:y
-        new = H * vertcat(i, j, 1);
-        new(1) = ceil(new(1)/new(3));
-        new(2) = ceil(new(2)/new(3));
-        new_x = new(1) - min_x + 1;
-        new_y = new(2) - min_y + 1;
-        new_im(new_x, new_y) = left(i, j); 
-    end
-end
-
-figure()
-subplot(121);
-imagesc(left); colormap gray; hold on; axis image; axis off;
-subplot(122);
-imagesc(new_im); colormap gray; hold on; axis image; axis off;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Display the left image and the projected version
+% figure()
+% subplot(121);
+% imagesc(left); colormap gray; hold on; axis image; axis off;
+% subplot(122);
+% imagesc(new_im); colormap gray; hold on; axis image; axis off;
