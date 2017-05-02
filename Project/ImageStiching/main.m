@@ -68,6 +68,7 @@ end
 best_number_in_threshold = 0;
 best_dist = 0;
 threshold = 3;
+best_set = zeros(1);
 best_H = zeros(1);
 
 best_inliers = [];
@@ -120,11 +121,6 @@ for t = 1:2000
         I(2) = I(2)/I(3);
         distance = sqrt((I(1) - u2)^2 + (I(2) - v2)^2);
         
-%         u2 = c2_old(matches(i, 2));
-%         v2 = r2_old(matches(i, 2));
-%         I2 = norm_H * vertcat(u2, v2, 1);
-%         distance2 = abs(I2(1) * u2 + I2(2) * v2 + I2(3))/sqrt(I2(1)*I2(1) + I2(2)*I2(2));
-        
         if distance < threshold
             number_in_threshold = number_in_threshold + 1;
             dist_sum = dist_sum + distance;
@@ -134,6 +130,7 @@ for t = 1:2000
         end
     end
     if number_in_threshold >= best_number_in_threshold
+        best_set = set;
         best_H = H;
         best_number_in_threshold = number_in_threshold;
         best_dist = dist_sum;
@@ -146,7 +143,59 @@ end
 H = inv(T2) * best_H * T1;
 
 %Get a tranformation and apply it to the left image
-tform = projective2d(H);
-left_2 = imwarp(double(left), tform);
+% tform = projective2d(H);
+% left_2 = imwarp(double(left), tform);
 
-% imshow(left_2);
+% Display the best matching points
+% pos1 = matches(best_set, 1);
+% pos2 = matches(best_set, 2);
+% 
+% u1 = c1_old(pos1);
+% v1 = r1_old(pos1);
+% u2 = c2_old(pos2);
+% v2 = r2_old(pos2);
+% 
+% imagesc(left) ; colormap gray ; hold on ; axis image ; axis off ;
+% plot(u1,v1,'r.','MarkerSize',20);
+% 
+% figure();
+% imagesc(right) ; colormap gray ; hold on ; axis image ; axis off ;
+% plot(u2,v2,'r.','MarkerSize',20);
+
+% Manually project the left image
+[x, y] = size(right);
+
+min_x = 0;
+max_x = 0;
+min_y = 0;
+max_y = 0;
+
+for i = 1:x
+    for j = 1:y
+        new = H * vertcat(i, j, 1);
+        new(1) = new(1)/new(3);
+        new(2) = new(2)/new(3);
+        min_x = min(min_x, ceil(new(1)));
+        max_x = max(max_x, ceil(new(1)));
+        min_y = min(min_y, ceil(new(2)));
+        max_y = max(max_y, ceil(new(2)));
+    end
+end
+
+new_im = zeros(max_x - min_x, max_y - min_y);
+for i = 1:x
+    for j = 1:y
+        new = H * vertcat(i, j, 1);
+        new(1) = ceil(new(1)/new(3));
+        new(2) = ceil(new(2)/new(3));
+        new_x = new(1) - min_x + 1;
+        new_y = new(2) - min_y + 1;
+        new_im(new_x, new_y) = left(i, j); 
+    end
+end
+
+figure()
+subplot(121);
+imagesc(left); colormap gray; hold on; axis image; axis off;
+subplot(122);
+imagesc(new_im); colormap gray; hold on; axis image; axis off;
