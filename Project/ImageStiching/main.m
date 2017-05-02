@@ -1,5 +1,5 @@
-left = rgb2gray(imresize(imread('images/left.jpg'), .3));
-right = rgb2gray(imresize(imread('images/right.jpg'), .3));
+left = rgb2gray(imread('images/left1.jpg'));
+right = rgb2gray(imread('images/right1.jpg'));
 
 left_s = single(left);
 right_s = single(right);
@@ -67,7 +67,7 @@ end
 [n, k] = size(matches);
 best_number_in_threshold = 0;
 best_dist = 0;
-threshold = 30;
+threshold = 3;
 best_H = zeros(1);
 
 best_inliers = [];
@@ -93,8 +93,8 @@ for t = 1:2000
         u2 = c2(pos2);
         v2 = r2(pos2);
 
-        A(2*(i-1) + 1, :) = [-u1, -v2, -1, 0, 0, 0, u1 * u2, v1 * u2, u2];
-        A(2*(i-1) + 2, :) = [0, 0, 0, -u1, -v2, -1, u1 * v2, v1 * v2, v2];
+        A(2*(i-1) + 1, :) = [-u1, -v1, -1, 0, 0, 0, u1 * u2, v1 * u2, u2];
+        A(2*(i-1) + 2, :) = [0, 0, 0, -u1, -v1, -1, u1 * v2, v1 * v2, v2];
     end
 
     [U, S, V] = svd(A);
@@ -114,7 +114,10 @@ for t = 1:2000
         v = r1_old(matches(i, 1));
         u2 = c2_old(matches(i, 2));
         v2 = r2_old(matches(i, 2));
+        
         I = norm_H * vertcat(u, v, 1);
+        I(1) = I(1)/I(3);
+        I(2) = I(2)/I(3);
         distance = sqrt((I(1) - u2)^2 + (I(2) - v2)^2);
         
 %         u2 = c2_old(matches(i, 2));
