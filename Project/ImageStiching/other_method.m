@@ -1,5 +1,8 @@
-left = rgb2gray(imread('images/left1.jpg'));
-right = rgb2gray(imread('images/right1.jpg'));
+left_orig = imresize(imread('images/left.jpg'), .3);
+right_orig = imresize(imread('images/right.jpg'), .3);
+
+left = rgb2gray(left_orig);
+right = rgb2gray(right_orig);
 
 left_s = single(left);
 right_s = single(right);
@@ -8,20 +11,9 @@ right_s = single(right);
 [f_right,d_right] = vl_sift(right_s);
 [matches, scores] = vl_ubcmatch(d_left, d_right);
 
-% imshow(left);
-% perm = randperm(size(f_left,2));
-% sel = perm(1:50);
-% h1 = vl_plotframe(f_left(:,sel));
-% h2 = vl_plotframe(f_left(:,sel));
-% set(h1,'color','k','linewidth',3);
-% set(h2,'color','y','linewidth',2);
-% h3 = vl_plotsiftdescriptor(d_left(:,sel),f_left(:,sel)) ;
-% set(h3,'color','g') ;
-
 matches = matches';
 r1 = f_left(2, :);
 c1 = f_left(1, :);
-
 r2 = f_right(2, :);
 c2 = f_right(1, :);
 
@@ -140,68 +132,30 @@ for t = 1:2000
 end
 
 % Unnormalize H
-H = inv(T2) * best_H * T1;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% H = inv(T2) * best_H * T1;
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Get a tranformation and apply it to the left image - This part does not work
-tform = projective2d(H);
-new_im = imwarp(double(left), tform);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Display the best matching points
-% pos1 = matches(best_set, 1);
-% pos2 = matches(best_set, 2);
-% 
-% u1 = c1_old(pos1);
-% v1 = r1_old(pos1);
-% u2 = c2_old(pos2);
-% v2 = r2_old(pos2);
-% 
-% imagesc(left) ; colormap gray ; hold on ; axis image ; axis off ;
-% plot(u1,v1,'r.','MarkerSize',20);
-% 
-% figure();
-% imagesc(right) ; colormap gray ; hold on ; axis image ; axis off ;
-% plot(u2,v2,'r.','MarkerSize',20);
+% tform = projective2d(H);
+% new_im = imwarp(double(left), tform);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Manually project the left image
-% [x, y] = size(right);
-% 
-% min_x = 0;
-% max_x = 0;
-% min_y = 0;
-% max_y = 0;
-% 
-% for i = 1:x
-%     for j = 1:y
-%         new = H * vertcat(i, j, 1);
-%         new(1) = new(1)/new(3);
-%         new(2) = new(2)/new(3);
-%         min_x = min(min_x, ceil(new(1)));
-%         max_x = max(max_x, ceil(new(1)));
-%         min_y = min(min_y, ceil(new(2)));
-%         max_y = max(max_y, ceil(new(2)));
-%     end
-% end
-% 
-% new_im = zeros(max_x - min_x, max_y - min_y);
-% for i = 1:x
-%     for j = 1:y
-%         new = H * vertcat(i, j, 1);
-%         new(1) = ceil(new(1)/new(3));
-%         new(2) = ceil(new(2)/new(3));
-%         new_x = new(1) - min_x + 1;
-%         new_y = new(2) - min_y + 1;
-%         new_im(new_x, new_y) = left(i, j); 
-%     end
-% end
+% Display the best matching points
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Display the left image and the projected version
 figure()
 subplot(121);
-imagesc(left); colormap gray; hold on; axis image; axis off;
+imagesc(left_orig); hold on; axis image; axis off;
 subplot(122);
-imagesc(new_im); colormap gray; hold on; axis image; axis off;
+imagesc(new_im); hold on; axis image; axis off;
+
+
+pos1 = matches(best_set, 1);
+pos2 = matches(best_set, 2);
+
+u1 = c1_old(pos1);
+v1 = r1_old(pos1);
+u2 = c2_old(pos2);
+v2 = r2_old(pos2);
+
+T = maketform('projective',[u1' v1'],[u2' v2']);
+[new_im, x, y] = imtransform(left_orig, T);
