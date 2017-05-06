@@ -1,0 +1,14 @@
+
+
+% img_path = strcat('images/test_', num2str(img_idx), '.jpg');
+im1 = imresize(imread('images/test_1.jpg'), .3);
+im2 = imresize(imread('images/test_2.jpg'), .3);
+im3 = imresize(imread('images/test_3.jpg'), .3);
+
+pan2 = other_method(im2, im3);
+pan1 = other_method(im1, pan2);
+
+figure(1)
+imshow(pan1);
+figure(2)
+imshow(pan2);

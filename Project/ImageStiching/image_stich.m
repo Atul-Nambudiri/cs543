@@ -1,12 +1,4 @@
-function [ims] = other_method(left_orig, right_orig)
-% left_orig = imresize(imread('images/test_1.jpg'), [459, 816]);
-
-% for img_idx = 2:3   
-%     img_path = strcat('images/test_', num2str(img_idx), '.jpg');
-% %     left_orig = imresize(imread('images/left.jpg'), .3);
-%     [row, col, chan] = size(left_orig);
-%     right_orig = imresize(imread(img_path), [row, col]);
-
+function [ims] = image_stich(left_orig, right_orig)
     left_s = single(rgb2gray(left_orig));
     right_s = single(rgb2gray(right_orig));
 
@@ -151,8 +143,9 @@ function [ims] = other_method(left_orig, right_orig)
     v1 = r1_old(pos1);
     u2 = c2_old(pos2);
     v2 = r2_old(pos2);
-    % 
+
     T = maketform('projective',[u2' v2'],[u1' v1']);
+    
     % [new_im, x, y] = imtransform(left_orig, T);
     % 
     % x_size = [min(1, x(1)), max(right_orig, 2), x(2))];
@@ -167,7 +160,7 @@ function [ims] = other_method(left_orig, right_orig)
     % imagesc(new_im); hold on; axis image; axis off;
 
 
-    [im2t,xcoord,ycoord] = imtransform(right_orig,T);
+    [~,xcoord,ycoord] = imtransform(right_orig,T);
 
     ycombo(1, 1) = min(1,ycoord(1));
     ycombo(1, 2) = max(size(left_orig,1),ycoord(2));
@@ -184,8 +177,4 @@ function [ims] = other_method(left_orig, right_orig)
     im1t = imtransform(left_orig,maketform('affine',I3),'XData',xcombo,'YData',ycombo);
 
     ims=max(im1t,im2t);
-%     imshow(ims);
-%     left_orig = imresize(ims, [459, 816]);\
-%     left_orig = ims;
-% end
 end
